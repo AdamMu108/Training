@@ -1,0 +1,40 @@
+<nav class="navbar-full">
+    <div class="nav-container-full">
+        <div class="nav-brand-full">
+            <a href="/home" class="logo-full">
+                <span>شحن الكهرباء</span>
+            </a>
+        </div>
+
+        <div class="nav-links-full">
+            <a href="/home" class="nav-link-full">
+                الرئيسية
+            </a>
+            <a href="/query" class="nav-link-full">
+                استعلام سريع
+            </a>
+            <a href="/home" class="nav-link-full">
+                العدادات المحفوظة
+            </a>
+        </div>
+
+        <div class="nav-user-full">
+            <a href="/" class="login-btn-full" @onclick="Logout">
+                تسجيل الخروج
+            </a>
+        </div>
+    </div>
+</nav>
+
+<link href="css/NavMenuFullWidth.css" rel="stylesheet" />
+
+@code {
+    [Inject] 
+    private NavigationManager Navigation { get; set; } = default!;
+
+    private void Logout()
+    {
+        // Navigate to login page
+        Navigation.NavigateTo("/", forceLoad: true);
+    }
+}

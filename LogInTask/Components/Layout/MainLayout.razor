@@ -1,0 +1,54 @@
+﻿@inherits LayoutComponentBase
+
+<div class="main-layout" dir="rtl">
+    <div class="layout-header">
+        <div class="header-content">
+            <button class="menu-toggle" @onclick="ToggleSidebar" aria-label="قائمة التنقل">
+                <span class="menu-icon"></span>
+            </button>
+            <div class="header-title">
+            </div>
+            <div class="header-actions">
+            </div>
+        </div>
+    </div>
+
+    <div class="layout-container">
+        <aside class="sidebar @(sidebarOpen ? "open" : "")">
+            <div class="sidebar-content">
+                <NavMenu />
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-wrapper">
+                @Body
+            </div>
+        </main>
+    </div>
+
+    @if (sidebarOpen)
+    {
+        <div class="sidebar-overlay" @onclick="ToggleSidebar"></div>
+    }
+</div>
+
+<div id="blazor-error-ui">
+    <div class="error-content">
+        <span class="error-icon">⚠️</span>
+        <span class="error-message">حدث خطأ غير متوقع</span>
+        <div class="error-actions">
+            <a href="" class="reload-btn">إعادة التحميل</a>
+            <button class="dismiss-btn">×</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool sidebarOpen = true;
+
+    private void ToggleSidebar()
+    {
+        sidebarOpen = !sidebarOpen;
+    }
+}

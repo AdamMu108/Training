@@ -1,0 +1,251 @@
+@page "/"
+@using LogInTask.Models
+@using LogInTask.Services
+@using LogInTask.Components.Layout
+@using System.Text.RegularExpressions
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components
+@layout AuthLayout
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2>تسجيل الدخول</h2>
+            <p>ادخل بيانات حسابك للوصول إلى النظام</p>
+        </div>
+
+        @if (!showOtpForm)
+        {
+            <EditForm Model="@loginModel" FormName="LoginForm" OnValidSubmit="@HandleLogin">
+                <DataAnnotationsValidator />
+
+                <div class="form-group">
+                    <label for="username">اسم المستخدم</label>
+                    <InputText id="username" @bind-Value="loginModel.Username" class="form-control" placeholder="أدخل اسم المستخدم" />
+                    <ValidationMessage For="@(() => loginModel.Username)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="password">كلمة المرور</label>
+                    <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" placeholder="أدخل كلمة المرور" />
+                    <ValidationMessage For="@(() => loginModel.Password)" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="error-message">
+                        @errorMessage
+                    </div>
+                }
+
+                <button type="submit" class="btn-login" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner"></span>
+                        <span>جاري تسجيل الدخول...</span>
+                    }
+                    else
+                    {
+                        <span>تسجيل الدخول</span>
+                    }
+                </button>
+            </EditForm>
+        }
+        else
+        {
+            <EditForm Model="@otpModel" FormName="OtpForm" OnValidSubmit="@HandleOtpVerification">
+                <DataAnnotationsValidator />
+
+                <div class="otp-info">
+                    <div class="otp-icon">🔑</div>
+                    <h3>رمز التحقق</h3>
+                    <p>يرجى إدخال رمز التأكيد المرسل إليك</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="otp">رمز التحقق</label>
+                    <InputText id="otp" @bind-Value="otpModel.OtpCode" class="form-control otp-input" placeholder="أدخل الرمز المكون من 6 أرقام" maxlength="6" />
+                    <ValidationMessage For="@(() => otpModel.OtpCode)" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="error-message">
+                        @errorMessage
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="success-message">
+                        @successMessage
+                    </div>
+                }
+
+                <div class="otp-actions">
+                    <button type="submit" class="btn-login" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner"></span>
+                            <span>جاري التحقق...</span>
+                        }
+                        else
+                        {
+                            <span>تحقق من الرمز</span>
+                        }
+                    </button>
+                    <button type="button" class="btn-back" @onclick="BackToLogin">
+                        ← العودة لتسجيل الدخول
+                    </button>
+                </div>
+            </EditForm>
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel loginModel { get; set; } = new();
+    
+    [SupplyParameterFromForm]
+    private OtpModel otpModel { get; set; } = new();
+    
+    private bool showOtpForm = false;
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private User? currentUser;
+    private bool loggedIn = false;
+    private static readonly Regex EmailRegex = new(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
+
+    private async Task HandleLogin()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        isLoading = true;
+
+        await Task.Delay(500);
+
+        var (success, message) = await AuthService.LoginAsync(loginModel.Username, loginModel.Password);
+
+        if (!success)
+        {
+            if (message == "OTP required")
+            {
+                if (EmailRegex.IsMatch(loginModel.Username))
+                {
+                    currentUser = AuthService.GetUserByEmail(loginModel.Username);
+                }
+                else
+                {
+                    currentUser = AuthService.GetUserByUsername(loginModel.Username);
+                }
+
+                if (currentUser == null)
+                {
+                    errorMessage = "حدث خطأ في التحقق من بيانات الحساب.";
+                    isLoading = false;
+                    return;
+                }
+                showOtpForm = true;
+                successMessage = $"تم التحقق من بياناتك! استخدم الرمز: {currentUser.StaticOtp}";
+            }
+            else
+            {
+                errorMessage = message;
+            }
+        }
+        else
+        {
+            if (EmailRegex.IsMatch(loginModel.Username))
+            {
+                currentUser = AuthService.GetUserByEmail(loginModel.Username);
+            }
+            else
+            {
+                currentUser = AuthService.GetUserByUsername(loginModel.Username);
+            }
+
+            if (currentUser == null)
+            {
+                errorMessage = "حدث خطأ غير متوقع.";
+                isLoading = false;
+                return;
+            }
+            successMessage = $"أهلاً بعودتك {currentUser.Username}! تم تسجيل الدخول بنجاح.";
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/home");
+        }
+
+        isLoading = false;
+    }
+
+    private async Task HandleOtpVerification()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        isLoading = true;
+
+        await Task.Delay(500);
+
+        var (success, message) = await AuthService.LoginAsync(loginModel.Username, loginModel.Password, otpModel.OtpCode);
+
+        if (success)
+        {
+            if (EmailRegex.IsMatch(loginModel.Username))
+            {
+                currentUser = AuthService.GetUserByEmail(loginModel.Username);
+            }
+            else
+            {
+                currentUser = AuthService.GetUserByUsername(loginModel.Username);
+            }
+
+            if (currentUser == null)
+            {
+                errorMessage = "لم يتم العثور على بيانات المستخدم.";
+                isLoading = false;
+                return;
+            }
+
+            successMessage = $"تم التحقق من الرمز بنجاح! مرحباً {currentUser.Username}";
+            await Task.Delay(1500);
+            Navigation.NavigateTo("/home");
+        }
+        else
+        {
+            errorMessage = message ?? "رمز التحقق غير صالح. الرجاء المحاولة مرة أخرى.";
+        }
+
+        isLoading = false;
+    }
+
+    private void BackToLogin()
+    {
+        showOtpForm = false;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+        otpModel = new();
+    }
+
+    // Models
+    public class LoginModel
+    {
+        [Required(ErrorMessage = "Username or email is required")]
+        public string Username { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Password is required")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    public class OtpModel
+    {
+        [Required(ErrorMessage = "OTP code is required")]
+        [StringLength(6, MinimumLength = 6, ErrorMessage = "OTP must be 6 digits")]
+        [RegularExpression(@"^\d{6}$", ErrorMessage = "OTP must be numeric")]
+        public string OtpCode { get; set; } = string.Empty;
+    }
+}

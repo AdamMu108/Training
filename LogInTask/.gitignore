@@ -1,0 +1,44 @@
+# Build results
+bin/
+obj/
+out/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Visual Studio Code
+.vscode/
+
+# ASP.NET / Blazor / Web
+wwwroot/css/*.map
+wwwroot/js/*.map
+*.log
+*.db
+
+# npm / node
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.DS_Store
+
+# Publish output
+publish/
+*.zip
+
+# Others
+*.env
